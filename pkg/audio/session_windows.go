@@ -2,7 +2,9 @@ package audio
 
 import (
 	"fmt"
+	"github.com/go-ole/go-ole"
 	"github.com/moutend/go-wca/pkg/wca"
+	"golang.org/x/sys/windows"
 	"unsafe"
 )
 
@@ -52,7 +54,7 @@ func (this Device) introspectSession(sessionControl *wca.IAudioSessionControl, s
 	// Exclude system sound session
 	if err := sessionControl2.IsSystemSoundsSession(); err == nil {
 		return Session{}, false, nil
-	} else if err.Error() == "Incorrect function." {
+	} else if oe, ok := err.(*ole.OleError); ok && oe.Code() == uintptr(windows.ERROR_INVALID_FUNCTION) {
 		if err := sessionControl2.GetProcessId(&pid); err != nil {
 			return Session{}, false, fmt.Errorf("cannot get PID of processes which hold session %d of device %v: %w", sessionIndex, this, err)
 		}
