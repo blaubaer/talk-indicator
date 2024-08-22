@@ -2,6 +2,7 @@ package audio
 
 import (
 	"fmt"
+	"github.com/blaubaer/talk-indicator/pkg/common"
 	"github.com/go-ole/go-ole"
 	"github.com/moutend/go-wca/pkg/wca"
 	"golang.org/x/sys/windows"
@@ -50,14 +51,10 @@ func (this Device) introspectSession(sessionControl *wca.IAudioSessionControl, s
 	sessionControl2 := (*wca.IAudioSessionControl2)(unsafe.Pointer(dispatch))
 	defer sessionControl2.Release()
 
-	var pid uint32
-	// Exclude system sound session
 	if err := sessionControl2.IsSystemSoundsSession(); err == nil {
 		return Session{}, false, nil
-	} else if oe, ok := err.(*ole.OleError); ok && oe.Code() == uintptr(windows.ERROR_INVALID_FUNCTION) {
-		if err := sessionControl2.GetProcessId(&pid); err != nil {
-			return Session{}, false, fmt.Errorf("cannot get PID of processes which hold session %d of device %v: %w", sessionIndex, this, err)
-		}
+	} else if oe, ok := common.AsError[*ole.OleError](err); ok && oe.Code() == uintptr(windows.ERROR_INVALID_FUNCTION) {
+		// Ok, continue....
 	} else {
 		return Session{}, false, fmt.Errorf("cannot get determine if audio session %d of device %v is a system session or not: %w", sessionIndex, this, err)
 	}
@@ -66,11 +63,18 @@ func (this Device) introspectSession(sessionControl *wca.IAudioSessionControl, s
 	if err := sessionControl.GetState(&state); err != nil {
 		return Session{}, false, fmt.Errorf("cannot get state of audio session %d of device %v: %w", sessionIndex, this, err)
 	}
+
 	switch state {
 	case 1:
-		return Session{
-			HolderPid: pid,
-		}, true, nil
+		var s Session
+		if err := sessionControl2.GetProcessId(&s.HolderPid); err != nil {
+			return Session{}, false, fmt.Errorf("cannot get PID of processes which hold session %d of device %v: %w", sessionIndex, this, err)
+		}
+		if err := sessionControl2.GetSessionIdentifier(&s.Identifier); err != nil {
+			return Session{}, false, fmt.Errorf("cannot get session identifier of audio session %d of device %v: %w", sessionIndex, this, err)
+		}
+
+		return s, true, nil
 	default:
 		return Session{}, false, nil
 	}
