@@ -1,6 +1,6 @@
 module github.com/blaubaer/talk-indicator
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
