@@ -6,6 +6,7 @@ import (
 	"github.com/blaubaer/talk-indicator/pkg/common"
 	"github.com/blaubaer/talk-indicator/pkg/signal"
 	log "github.com/echocat/slf4g"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -17,6 +18,9 @@ type App struct {
 	CheckInterval   time.Duration
 	RefreshInterval time.Duration
 
+	IncludedSessionIdentifiers *regexp.Regexp
+	ExcludedSessionIdentifiers *regexp.Regexp
+
 	initialized sync.Once
 }
 
@@ -24,6 +28,7 @@ func (this *App) ensure() {
 	this.initialized.Do(func() {
 		this.CheckInterval = 5 * time.Second
 		this.RefreshInterval = 5 * time.Minute
+		this.ExcludedSessionIdentifiers = regexp.MustCompile(`\{[0-9a-f.]+}\.{[0-9a-f-]+}\|\\Device\\.+\\Windows\\System32\\svchost\.exe%.*`)
 	})
 }
 
@@ -33,6 +38,14 @@ func (this *App) SetupConfiguration(using common.FlagHolder) {
 	this.AudioStack.SetupConfiguration(using)
 	this.Signal.SetupConfiguration(using)
 
+	var includedSessionIdsDef, excludedSessionIdsDef string
+	if v := this.IncludedSessionIdentifiers; v != nil {
+		includedSessionIdsDef = v.String()
+	}
+	if v := this.ExcludedSessionIdentifiers; v != nil {
+		excludedSessionIdsDef = v.String()
+	}
+
 	using.Flag("checkInterval", "How often the state of the talk is checked.").
 		Envar("TI_CHECK_INTERVAL").
 		Default(this.CheckInterval.String()).
@@ -41,6 +54,14 @@ func (this *App) SetupConfiguration(using common.FlagHolder) {
 		Envar("TI_REFRESH_INTERVAL").
 		Default(this.RefreshInterval.String()).
 		DurationVar(&this.RefreshInterval)
+	using.Flag("includedSessionIdentifiers", "Which session identifiers should be respected for evaluation.").
+		Envar("TI_INCLUDED_SESSION_IDENTIFIERS").
+		Default(includedSessionIdsDef).
+		RegexpVar(&this.IncludedSessionIdentifiers)
+	using.Flag("excludedSessionIdentifiers", "Which session identifiers should not be respected for evaluation.").
+		Envar("TI_EXCLUDED_SESSION_IDENTIFIERS").
+		Default(excludedSessionIdsDef).
+		RegexpVar(&this.ExcludedSessionIdentifiers)
 }
 
 func (this *App) Run(ctx context.Context) error {
@@ -101,7 +122,19 @@ func (this *App) Run(ctx context.Context) error {
 		}
 
 		state := signal.StateOff
-		if devices.HasSession() {
+		if devices.HasRelevantSession(func(candidate *audio.Session) bool {
+			if v := this.IncludedSessionIdentifiers; v != nil && v.String() != "" {
+				if !v.MatchString(candidate.Identifier) {
+					return false
+				}
+			}
+			if v := this.ExcludedSessionIdentifiers; v != nil && v.String() != "" {
+				if v.MatchString(candidate.Identifier) {
+					return false
+				}
+			}
+			return true
+		}) {
 			state = signal.StateOn
 		}
 

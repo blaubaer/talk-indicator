@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	_ "embed"
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/blaubaer/talk-indicator/pkg/app"
 	log "github.com/echocat/slf4g"
 	"github.com/echocat/slf4g/native"
 	_ "github.com/echocat/slf4g/native"
 	"github.com/echocat/slf4g/native/facade/value"
 	"github.com/echocat/slf4g/native/formatter"
-	"github.com/getlantern/systray"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,15 +26,15 @@ func main() {
 		"json": formatter.NewJson(),
 	}
 
-	var app app.App
+	var a app.App
 
 	cmd := kingpin.New(os.Args[0], "").
 		Action(func(*kingpin.ParseContext) (rErr error) {
-			if err := app.Initialize(); err != nil {
+			if err := a.Initialize(); err != nil {
 				return err
 			}
 			defer func() {
-				if err := app.Dispose(); err != nil && rErr == nil {
+				if err := a.Dispose(); err != nil && rErr == nil {
 					rErr = err
 				}
 			}()
@@ -50,33 +49,18 @@ func main() {
 				cancel()
 			}()
 
-			return app.Run(ctx)
+			return a.Run(ctx)
 		})
-	app.SetupConfiguration(cmd)
+	a.SetupConfiguration(cmd)
 
 	cmd.Flag("log.level", "").
 		SetValue(lv.Level)
 	cmd.Flag("log.format", "").
 		Default("text").
 		SetValue(lv.Consumer.Formatter)
+	cmd.Flag("log.color", "").
+		Default("auto").
+		SetValue(lv.Consumer.Formatter.ColorMode)
 
 	kingpin.MustParse(cmd.Parse(os.Args[1:]))
-}
-
-//go:embed iconwin.ico
-var icon []byte
-
-func onExit() {
-	log.Info("Bye!")
-}
-
-func onReady() {
-	systray.SetIcon(icon)
-	systray.SetTitle("MicRedLight")
-	systray.SetTooltip("MicRedLight")
-	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
-	go func() {
-		<-mQuit.ClickedCh
-		systray.Quit()
-	}()
 }

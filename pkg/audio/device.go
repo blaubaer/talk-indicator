@@ -14,8 +14,8 @@ func (this Device) String() string {
 	return fmt.Sprintf("[%d] %s", this.Index, this.Name)
 }
 
-func (this Device) HasSession() bool {
-	return this.Sessions.HasContent()
+func (this Device) HasRelevantSession(predicate func(*Session) bool) bool {
+	return this.Sessions.HasRelevantSession(predicate)
 }
 
 type Devices []Device
@@ -28,9 +28,9 @@ func (this Devices) HasContent() bool {
 	return !this.IsZero()
 }
 
-func (this Devices) HasSession() bool {
+func (this Devices) HasRelevantSession(predicate func(*Session) bool) bool {
 	for _, v := range this {
-		if v.HasSession() {
+		if v.HasRelevantSession(predicate) {
 			return true
 		}
 	}
