@@ -2,8 +2,9 @@ package signal
 
 import (
 	"fmt"
-	"github.com/blaubaer/talk-indicator/pkg/common"
 	"sync"
+
+	"github.com/blaubaer/talk-indicator/pkg/common"
 )
 
 type Facade struct {

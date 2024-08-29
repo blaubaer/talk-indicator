@@ -2,12 +2,15 @@ package signal
 
 import (
 	"fmt"
-	"github.com/amimof/huego"
-	"github.com/blaubaer/talk-indicator/pkg/common"
-	log "github.com/echocat/slf4g"
 	"regexp"
 	"sync"
 	"time"
+
+	"github.com/amimof/huego"
+	log "github.com/echocat/slf4g"
+
+	"github.com/blaubaer/talk-indicator/pkg/audio"
+	"github.com/blaubaer/talk-indicator/pkg/common"
 )
 
 const appName = "github.com/blaubaer/talk-indicator"
@@ -90,7 +93,7 @@ func (this *Hue) discoverGroups(bridge *huego.Bridge) (result []huego.Group, _ e
 	return
 }
 
-func (this *Hue) Ensure(state State) error {
+func (this *Hue) Ensure(state State, _ []audio.Device) error {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 

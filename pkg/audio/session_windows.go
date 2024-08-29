@@ -2,11 +2,15 @@ package audio
 
 import (
 	"fmt"
-	"github.com/blaubaer/talk-indicator/pkg/common"
+	"strings"
+	"unsafe"
+
 	"github.com/go-ole/go-ole"
 	"github.com/moutend/go-wca/pkg/wca"
+	"github.com/shirou/gopsutil/process"
 	"golang.org/x/sys/windows"
-	"unsafe"
+
+	"github.com/blaubaer/talk-indicator/pkg/common"
 )
 
 func (this Device) getSessionsOfDevice(sessionManager *wca.IAudioSessionManager2) (result Sessions, _ error) {
@@ -72,6 +76,12 @@ func (this Device) introspectSession(sessionControl *wca.IAudioSessionControl, s
 		}
 		if err := sessionControl2.GetSessionIdentifier(&s.Identifier); err != nil {
 			return Session{}, false, fmt.Errorf("cannot get session identifier of audio session %d of device %v: %w", sessionIndex, this, err)
+		}
+
+		if p, err := process.NewProcess(int32(s.HolderPid)); err == nil {
+			if n, err := p.Name(); err == nil {
+				s.Title = strings.TrimSuffix(n, ".exe")
+			}
 		}
 
 		return s, true, nil

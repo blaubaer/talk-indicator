@@ -2,18 +2,21 @@ package app
 
 import (
 	"context"
-	"github.com/blaubaer/talk-indicator/pkg/audio"
-	"github.com/blaubaer/talk-indicator/pkg/common"
-	"github.com/blaubaer/talk-indicator/pkg/signal"
-	log "github.com/echocat/slf4g"
 	"regexp"
 	"sync"
 	"time"
+
+	log "github.com/echocat/slf4g"
+
+	"github.com/blaubaer/talk-indicator/pkg/audio"
+	"github.com/blaubaer/talk-indicator/pkg/common"
+	"github.com/blaubaer/talk-indicator/pkg/signal"
 )
 
 type App struct {
-	AudioStack audio.Stack
-	Signal     signal.Facade
+	AudioStack   audio.Stack
+	Signal       signal.Facade
+	OtherSignals []signal.Signal
 
 	CheckInterval   time.Duration
 	RefreshInterval time.Duration
@@ -64,10 +67,11 @@ func (this *App) SetupConfiguration(using common.FlagHolder) {
 		RegexpVar(&this.ExcludedSessionIdentifiers)
 }
 
-func (this *App) Run(ctx context.Context) error {
+func (this *App) Run(ctx context.Context) {
 	this.ensure()
 
 	var lastState *signal.State
+	var lastDevices audio.Devices
 
 	ctxInner, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -88,13 +92,26 @@ func (this *App) Run(ctx context.Context) error {
 					Error("Cannot update signal.")
 				continue
 			}
+			for _, s := range this.OtherSignals {
+				if err := s.Update(); err != nil {
+					log.WithError(err).
+						Warn("Cannot update signal.")
+				}
+			}
 
 			if lastState != nil {
-				if err := this.Signal.Ensure(*lastState); err != nil {
+				if err := this.Signal.Ensure(*lastState, lastDevices); err != nil {
 					log.WithError(err).
 						Error("Cannot ensure signal state.")
 					continue
 				}
+				for _, s := range this.OtherSignals {
+					if err := s.Ensure(*lastState, lastDevices); err != nil {
+						log.WithError(err).
+							Warn("Cannot ensure signal state.")
+					}
+				}
+
 			}
 		}
 	}()
@@ -109,7 +126,7 @@ func (this *App) Run(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Debug("Check loop interrupted.")
-				return nil
+				return
 			case <-time.After(this.CheckInterval):
 			}
 		}
@@ -122,7 +139,7 @@ func (this *App) Run(ctx context.Context) error {
 		}
 
 		state := signal.StateOff
-		if devices.HasRelevantSession(func(candidate *audio.Session) bool {
+		predicate := func(candidate *audio.Session) bool {
 			if v := this.IncludedSessionIdentifiers; v != nil && v.String() != "" {
 				if !v.MatchString(candidate.Identifier) {
 					return false
@@ -134,9 +151,11 @@ func (this *App) Run(ctx context.Context) error {
 				}
 			}
 			return true
-		}) {
+		}
+		if devices.HasRelevantSession(predicate) {
 			state = signal.StateOn
 		}
+		lastDevices = devices.Filter(predicate)
 
 		log.With("devices", devices).
 			With("state", state).
@@ -152,12 +171,17 @@ func (this *App) Run(ctx context.Context) error {
 				Info("State change detected.")
 		}
 
-		if err := this.Signal.Ensure(state); err != nil {
+		if err := this.Signal.Ensure(state, lastDevices); err != nil {
 			log.WithError(err).
 				Error("It was not possible to ensure signal state.")
 			continue
 		}
-
+		for _, s := range this.OtherSignals {
+			if err := s.Ensure(state, lastDevices); err != nil {
+				log.WithError(err).
+					Warn("It was not possible to ensure signal state.")
+			}
+		}
 		lastState = &state
 	}
 }
@@ -200,5 +224,9 @@ func (this *App) Dispose() (rErr error) {
 		}
 	}()
 
-	return this.Signal.Ensure(signal.StateOff)
+	for _, s := range this.OtherSignals {
+		defer func() { _ = s.Ensure(signal.StateOff, nil) }()
+	}
+
+	return this.Signal.Ensure(signal.StateOff, nil)
 }

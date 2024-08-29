@@ -2,6 +2,7 @@ package audio
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Device struct {
@@ -16,6 +17,19 @@ func (this Device) String() string {
 
 func (this Device) HasRelevantSession(predicate func(*Session) bool) bool {
 	return this.Sessions.HasRelevantSession(predicate)
+}
+
+func (this Device) Filter(predicate func(*Session) bool) (Device, bool) {
+	sessions := this.Sessions.Filter(predicate)
+	if len(sessions) == 0 {
+		return Device{}, false
+	}
+
+	return Device{
+		strings.Clone(this.Name),
+		this.Index,
+		sessions,
+	}, true
 }
 
 type Devices []Device
@@ -35,4 +49,14 @@ func (this Devices) HasRelevantSession(predicate func(*Session) bool) bool {
 		}
 	}
 	return false
+}
+
+func (this Devices) Filter(predicate func(*Session) bool) Devices {
+	var result Devices
+	for _, v := range this {
+		if d, ok := v.Filter(predicate); ok {
+			result = append(result, d)
+		}
+	}
+	return result
 }
