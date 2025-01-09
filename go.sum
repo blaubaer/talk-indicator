@@ -9,8 +9,8 @@ github.com/danieljoos/wincred v1.2.2/go.mod h1:w7w4Utbrz8lqeMbDAK0lkNJUv5sAOkFi7
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/echocat/slf4g v1.6.1 h1:nQt0ZivDOsn8dyf3BJaHj1hWTF9MXsoefPUoTbVBI18=
-github.com/echocat/slf4g v1.6.1/go.mod h1:YvF/d1TcPvT+/xiHStLHPI4xPT1GGeEmPczn2MSljNA=
+github.com/echocat/slf4g v1.6.2 h1:fZPzeDaO7exJYOHVLlEE4EY4J7u9ekIfh9r7nc6sAFc=
+github.com/echocat/slf4g v1.6.2/go.mod h1:YvF/d1TcPvT+/xiHStLHPI4xPT1GGeEmPczn2MSljNA=
 github.com/echocat/slf4g/native v1.6.2 h1:wzDYak1mDG30W6++dfptrS3jPuOKrVSH05/V0sKd5ho=
 github.com/echocat/slf4g/native v1.6.2/go.mod h1:nttm/tfuBoiBR05xqp+e/5a2hJYQsRXuLDg9LqOoZbs=
 github.com/go-ole/go-ole v1.2.6/go.mod h1:pprOEPIfldk/42T2oK7lQ4v4JSDwmV0As9GaiUsvbm0=
