@@ -2,15 +2,54 @@ package audio
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/go-ole/go-ole"
 	"github.com/moutend/go-wca/pkg/wca"
 )
 
-func findDevices() (Devices, error) {
-	if err := ole.CoInitializeEx(0, ole.COINIT_APARTMENTTHREADED); err != nil {
-		panic(err) // Incorrect function.
+type Stack struct {
+	initialized bool
+	mutex       sync.RWMutex
+}
+
+func (this *Stack) Initialize() error {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	if this.initialized {
+		return nil
 	}
-	defer ole.CoUninitialize()
+
+	if err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED); err != nil {
+		return fmt.Errorf("failed to initialize ole: %v", err)
+	}
+
+	this.initialized = true
+	return nil
+}
+
+func (this *Stack) Dispose() error {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	if !this.initialized {
+		return nil
+	}
+
+	ole.CoUninitialize()
+	this.initialized = false
+
+	return nil
+}
+
+func (this *Stack) FindDevices() (Devices, error) {
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
+
+	if !this.initialized {
+		return nil, fmt.Errorf("not initialized")
+	}
 
 	var de *wca.IMMDeviceEnumerator
 	if err := wca.CoCreateInstance(wca.CLSID_MMDeviceEnumerator, 0, wca.CLSCTX_ALL, wca.IID_IMMDeviceEnumerator, &de); err != nil {
@@ -18,10 +57,10 @@ func findDevices() (Devices, error) {
 	}
 	defer de.Release()
 
-	return introspectDevicesOf(de)
+	return this.introspectDevicesOf(de)
 }
 
-func introspectDevicesOf(enumerator *wca.IMMDeviceEnumerator) (result Devices, _ error) {
+func (this *Stack) introspectDevicesOf(enumerator *wca.IMMDeviceEnumerator) (result Devices, _ error) {
 	var collection *wca.IMMDeviceCollection
 	if err := enumerator.EnumAudioEndpoints(wca.ECapture, wca.DEVICE_STATE_ACTIVE, &collection); err != nil {
 		return nil, fmt.Errorf("cannot query IMMDevices: %w", err)
@@ -34,7 +73,7 @@ func introspectDevicesOf(enumerator *wca.IMMDeviceEnumerator) (result Devices, _
 	}
 
 	for i := uint32(0); i < count; i++ {
-		device, err := introspectDeviceOf(collection, i)
+		device, err := this.introspectDeviceOf(collection, i)
 		if err != nil {
 			return nil, err
 		}
@@ -44,17 +83,17 @@ func introspectDevicesOf(enumerator *wca.IMMDeviceEnumerator) (result Devices, _
 	return
 }
 
-func introspectDeviceOf(collection *wca.IMMDeviceCollection, deviceIndex uint32) (Device, error) {
+func (this *Stack) introspectDeviceOf(collection *wca.IMMDeviceCollection, deviceIndex uint32) (Device, error) {
 	var device *wca.IMMDevice
 	if err := collection.Item(deviceIndex, &device); err != nil {
 		return Device{}, fmt.Errorf("cannot get item %d of IMMDevice collection: %w", deviceIndex, err)
 	}
 	defer device.Release()
 
-	return introspectDevice(device, deviceIndex)
+	return this.introspectDevice(device, deviceIndex)
 }
 
-func introspectDevice(captureDevice *wca.IMMDevice, deviceIndex uint32) (Device, error) {
+func (this *Stack) introspectDevice(captureDevice *wca.IMMDevice, deviceIndex uint32) (Device, error) {
 	var propertyStore *wca.IPropertyStore
 	if err := captureDevice.OpenPropertyStore(wca.STGM_READ, &propertyStore); err != nil {
 		return Device{}, fmt.Errorf("cannot get properties of device %d of IMMDevice collection: %w", deviceIndex, err)
