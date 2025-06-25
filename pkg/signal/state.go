@@ -33,14 +33,26 @@ func (this *State) Set(plain string) error {
 }
 
 func (this State) String() string {
-	switch this {
-	case StateOff:
-		return "off"
-	case StateOn:
-		return "on"
-	default:
+	v, err := this.MarshalText()
+	if err != nil {
 		return fmt.Sprintf("illegal-signal-state-%d", this)
 	}
+	return string(v)
+}
+
+func (this State) MarshalText() (text []byte, err error) {
+	switch this {
+	case StateOff:
+		return []byte("off"), nil
+	case StateOn:
+		return []byte("on"), nil
+	default:
+		return nil, fmt.Errorf("illegal signal state: %v", this)
+	}
+}
+
+func (this *State) UnmarshalText(text []byte) error {
+	return this.Set(string(text))
 }
 
 type States []State

@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	systray2 "github.com/blaubaer/talk-indicator/pkg/signal/systray"
 	"io"
 	"os"
 	"os/signal"
@@ -42,8 +43,8 @@ func main() {
 		"json": formatter.NewJson(),
 	}
 
-	var a app.App
-	a.OtherSignals = []ps.Signal{&ps.Systray{
+	a := app.NewApp()
+	a.OtherSignals = []ps.Signal{&systray2.Systray{
 		IconOn:  micOnIcon,
 		IconOff: micOffIcon,
 	}}

@@ -9,6 +9,7 @@ type Type uint8
 
 const (
 	TypeHue Type = iota
+	TypeHomeAssistant
 	TypeSystray
 
 	TypeDefault = TypeHue
@@ -17,6 +18,7 @@ const (
 var (
 	AllTypes = Types{
 		TypeHue,
+		TypeHomeAssistant,
 		TypeSystray,
 	}
 )
@@ -25,6 +27,9 @@ func (this *Type) Set(plain string) error {
 	switch strings.TrimSpace(strings.ToLower(plain)) {
 	case "hue":
 		*this = TypeHue
+		return nil
+	case "homeassistant":
+		*this = TypeHomeAssistant
 		return nil
 	case "systray":
 		*this = TypeSystray
@@ -35,25 +40,28 @@ func (this *Type) Set(plain string) error {
 }
 
 func (this Type) String() string {
+	v, err := this.MarshalText()
+	if err != nil {
+		return fmt.Sprintf("illegal-signal-type-%d", this)
+	}
+	return string(v)
+}
+
+func (this Type) MarshalText() (text []byte, err error) {
 	switch this {
 	case TypeHue:
-		return "hue"
+		return []byte("hue"), nil
+	case TypeHomeAssistant:
+		return []byte("homeassistant"), nil
 	case TypeSystray:
-		return "systray"
+		return []byte("systray"), nil
 	default:
-		return fmt.Sprintf("illegal-signal-type-%d", this)
+		return nil, fmt.Errorf("illegal signal type: %v", this)
 	}
 }
 
-func (this Type) newInstance() Signal {
-	switch this {
-	case TypeHue:
-		return &Hue{}
-	case TypeSystray:
-		return &Systray{}
-	default:
-		panic(fmt.Errorf("illegal-signal-type-%d", this))
-	}
+func (this *Type) UnmarshalText(text []byte) error {
+	return this.Set(string(text))
 }
 
 type Types []Type

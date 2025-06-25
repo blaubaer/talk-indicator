@@ -116,7 +116,7 @@ func (this *Stack) introspectDevice(captureDevice *wca.IMMDevice, deviceIndex ui
 		Index: deviceIndex,
 	}
 
-	if sessions, err := device.getSessionsOfDevice(sessionManager); err != nil {
+	if sessions, err := device.getSessionsOfDevice(sessionManager, &device); err != nil {
 		return Device{}, err
 	} else {
 		device.Sessions = sessions

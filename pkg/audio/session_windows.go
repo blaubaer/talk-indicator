@@ -1,3 +1,5 @@
+//go:build windows
+
 package audio
 
 import (
@@ -13,7 +15,7 @@ import (
 	"github.com/blaubaer/talk-indicator/pkg/common"
 )
 
-func (this Device) getSessionsOfDevice(sessionManager *wca.IAudioSessionManager2) (result Sessions, _ error) {
+func (this Device) getSessionsOfDevice(sessionManager *wca.IAudioSessionManager2, dev *Device) (result Sessions, _ error) {
 	var enumerator *wca.IAudioSessionEnumerator
 	if err := sessionManager.GetSessionEnumerator(&enumerator); err != nil {
 		return nil, fmt.Errorf("cannot get audio sessions of device %v: %w", this, err)
@@ -30,6 +32,7 @@ func (this Device) getSessionsOfDevice(sessionManager *wca.IAudioSessionManager2
 		if err != nil {
 			return nil, err
 		}
+		session.Device = dev.CloneBare()
 		if ok {
 			result = append(result, session)
 		}

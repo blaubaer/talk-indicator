@@ -2,6 +2,7 @@ package audio
 
 import (
 	"fmt"
+	"iter"
 	"strings"
 )
 
@@ -15,21 +16,16 @@ func (this Device) String() string {
 	return fmt.Sprintf("[%d] %s", this.Index, this.Name)
 }
 
-func (this Device) HasRelevantSession(predicate func(*Session) bool) bool {
-	return this.Sessions.HasRelevantSession(predicate)
-}
-
-func (this Device) Filter(predicate func(*Session) bool) (Device, bool) {
-	sessions := this.Sessions.Filter(predicate)
-	if len(sessions) == 0 {
-		return Device{}, false
-	}
-
+func (this Device) CloneBare() Device {
 	return Device{
 		strings.Clone(this.Name),
 		this.Index,
-		sessions,
-	}, true
+		Sessions{},
+	}
+}
+
+func (this Device) RelevantSessions(predicate func(*Session) (bool, error)) iter.Seq2[*Session, error] {
+	return this.Sessions.RelevantSessions(predicate)
 }
 
 type Devices []Device
@@ -42,21 +38,24 @@ func (this Devices) HasContent() bool {
 	return !this.IsZero()
 }
 
-func (this Devices) HasRelevantSession(predicate func(*Session) bool) bool {
-	for _, v := range this {
-		if v.HasRelevantSession(predicate) {
-			return true
+func (this Devices) HasRelevantSession(predicate func(*Session) (bool, error)) (bool, error) {
+	for _, err := range this.RelevantSessions(predicate) {
+		if err != nil {
+			return false, err
 		}
+		return true, nil
 	}
-	return false
+	return false, nil
 }
 
-func (this Devices) Filter(predicate func(*Session) bool) Devices {
-	var result Devices
-	for _, v := range this {
-		if d, ok := v.Filter(predicate); ok {
-			result = append(result, d)
+func (this Devices) RelevantSessions(predicate func(*Session) (bool, error)) iter.Seq2[*Session, error] {
+	return func(yield func(*Session, error) bool) {
+		for _, v := range this {
+			for sess, err := range v.RelevantSessions(predicate) {
+				if !yield(sess, err) {
+					return
+				}
+			}
 		}
 	}
-	return result
 }

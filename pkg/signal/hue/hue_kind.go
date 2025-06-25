@@ -1,4 +1,4 @@
-package signal
+package hue
 
 import (
 	"fmt"
