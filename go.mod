@@ -15,7 +15,7 @@ require (
 	github.com/moutend/go-wca v0.3.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/sys v0.33.0
+	golang.org/x/sys v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -36,11 +36,4 @@ require (
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel v1.37.0 // indirect
-	go.opentelemetry.io/otel/metric v1.37.0 // indirect
-	go.opentelemetry.io/otel/trace v1.37.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
 )
