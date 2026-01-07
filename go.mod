@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/amimof/huego v1.2.1
 	github.com/danieljoos/wincred v1.2.3
-	github.com/echocat/slf4g v1.7.0
+	github.com/echocat/slf4g v1.8.2
 	github.com/echocat/slf4g/native v1.7.0
 	github.com/go-ole/go-ole v1.3.0
 	github.com/moutend/go-wca v0.3.0
