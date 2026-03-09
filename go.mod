@@ -1,6 +1,6 @@
 module github.com/blaubaer/talk-indicator
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
@@ -10,7 +10,7 @@ require (
 	github.com/echocat/slf4g/native v1.8.4
 	github.com/go-ole/go-ole v1.3.0
 	github.com/moutend/go-wca v0.3.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.42.0
 )
 
 require (
