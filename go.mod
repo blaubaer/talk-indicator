@@ -10,7 +10,7 @@ require (
 	github.com/echocat/slf4g/native v1.8.4
 	github.com/go-ole/go-ole v1.3.0
 	github.com/moutend/go-wca v0.3.0
-	golang.org/x/sys v0.45.0
+	golang.org/x/sys v0.46.0
 )
 
 require (
